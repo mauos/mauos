@@ -1,4 +1,4 @@
 mauos
 =====
 
-php framework
+php framework fast and easy
