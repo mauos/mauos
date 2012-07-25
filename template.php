@@ -10,7 +10,6 @@ class Template {
 	
 	function parse_template($tplfile,$cachefile) {
 		$basefile = basename($tplfile, '.html');
-		
 		if ($fp = @fopen ($tplfile, 'r' )) {
 			$template = @fread ( $fp, filesize ($tplfile));
 			fclose ( $fp );
@@ -18,7 +17,6 @@ class Template {
 			$template = $this->getphptemplate(@fread( $fp, filesize($tplfile)));
 			fclose ( $fp );
 		}
-		
 		$var_regexp = "((\\\$[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*(\-\>)?[a-zA-Z0-9_\x7f-\xff]*)(\[[a-zA-Z0-9_\-\.\"\'\[\]\$\x7f-\xff]+\])*)";
 		$const_regexp = "([a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*)";
 		$headerexists = preg_match ("/{(sub)?template\s+[\w\/]+?header\}/", $template );
@@ -32,34 +30,17 @@ class Template {
 		
 		$template = preg_replace ( "/([\n\r]+)\t+/s", "\\1", $template );
 		$template = preg_replace ( "/\<\!\-\-\{(.+?)\}\-\-\>/s", "{\\1}", $template ); //处理隐藏的函数功能
-	
-		$template = preg_replace ( "/[\n\r\t]*\{block\/(\d+?)\}[\n\r\t]*/ie", "\$this->blocktags('\\1')", $template );
-		
-		$template = preg_replace ( "/[\n\r\t]*\{blockdata\/(\d+?)\}[\n\r\t]*/ie", "\$this->blockdatatags('\\1')", $template );
-		
-		$template = preg_replace ( "/[\n\r\t]*\{ad\/(.+?)\}[\n\r\t]*/ie", "\$this->adtags('\\1')", $template );
-		
-		$template = preg_replace ( "/[\n\r\t]*\{ad\s+([a-zA-Z0-9_\[\]]+)\/(.+?)\}[\n\r\t]*/ie", "\$this->adtags('\\2', '\\1')", $template );
-		
-		$template = preg_replace ( "/[\n\r\t]*\{date\((.+?)\)\}[\n\r\t]*/ie", "\$this->datetags('\\1')", $template );
-		
-		$template = preg_replace ( "/[\n\r\t]*\{avatar\((.+?)\)\}[\n\r\t]*/ie", "\$this->avatartags('\\1')", $template );
 		
 		$template = preg_replace ( "/[\n\r\t]*\{eval\s+(.+?)\s*\}[\n\r\t]*/ies", "\$this->evaltags('\\1')", $template );
 		
 		$template = str_replace ( "{LF}", "<?=\"\\n\"?>", $template ); //换行处理
 		
 		$template = preg_replace ( "/\{(\\\$[a-zA-Z0-9_\-\>\[\]\'\"\$\.\x7f-\xff]+)\}/s", "<?=\\1?>", $template ); //变量输出
-		
-		$template = preg_replace ( "/\{hook\/(\w+?)(\s+(.+?))?\}/ie", "\$this->hooktags('\\1', '\\3')", $template );
-		
-		$template = preg_replace ( "/$var_regexp/es","\$this->addquote('<?=\\1?>')", $template );
-		
+
+		$template = preg_replace ( "/$var_regexp/es","\$this->addquote('<?=\\1?>')", $template );		
 		$template = preg_replace ( "/\<\?\=\<\?\=$var_regexp\?\>\?\>/es", "\$this->addquote('<?=\\1?>')", $template );
 		
-		
 		$headeradd = $headerexists ? "hookscriptoutput('$basefile');" : '';
-		
 		if (! empty ( $this->subtemplates )) {
 			$headeradd .= "\n0\n";
 			foreach ( $this->subtemplates as $fname ) {
@@ -67,7 +48,6 @@ class Template {
 			}
 			$headeradd .= ';';
 		}
-		
 		if (! empty ( $this->blocks )) {
 			$headeradd .= "\n";
 			$headeradd .= "block_get('" . implode ( ',', $this->blocks ) . "');";
@@ -108,9 +88,10 @@ class Template {
 		if (! @$fp = fopen ($cachefile, 'w' )) {
 			$this->error ( 'directory_notfound', dirname ($cachefile));
 		}
-		
 		$template = preg_replace ( "/\"(http)?[\w\.\/:]+\?[^\"]+?&[^\"]+?\"/e", "\$this->transamp('\\0')", $template );
+		
 		$template = preg_replace ( "/\<script[^\>]*?src=\"(.+?)\"(.*?)\>\s*\<\/script\>/ies", "\$this->stripscriptamp('\\1', '\\2')", $template );
+		
 		$template = preg_replace ( "/[\n\r\t]*\{block\s+([a-zA-Z0-9_\[\]]+)\}(.+?)\{\/block\}/ies", "\$this->stripblock('\\1', '\\2')", $template );
 		$template = preg_replace ( "/\<\?(\s{1})/is", "<?php\\1", $template );
 		$template = preg_replace ( "/\<\?\=(.+?)\?\>/is", "<?php echo \\1;?>", $template );
@@ -120,44 +101,6 @@ class Template {
 	}
 	
 	
-	function blocktags($parameter) {
-		
-		$bid = intval ( trim ( $parameter ) );
-		$this->blocks [] = $bid;
-		$i = count ( $this->replacecode ['search'] );
-		$this->replacecode ['search'] [$i] = $search = "<!--BLOCK_TAG_$i-->";
-		$this->replacecode ['replace'] [$i] = "<?php block_display('$bid');?>";
-		return $search;
-		
-	}
-	
-	function blockdatatags($parameter) {
-		
-		$bid = intval ( trim ( $parameter ) );
-		$this->blocks [] = $bid;
-		$i = count ( $this->replacecode ['search'] );
-		$this->replacecode ['search'] [$i] = $search = "<!--BLOCKDATA_TAG_$i-->";
-		$this->replacecode ['replace'] [$i] = "";
-		return $search;
-		
-	}
-	
-	function datetags($parameter) {
-		$parameter = stripslashes ( $parameter );
-		$i = count ( $this->replacecode ['search'] );
-		$this->replacecode ['search'] [$i] = $search = "<!--DATE_TAG_$i-->";
-		$this->replacecode ['replace'] [$i] = "<?php echo dgmdate($parameter);?>";
-		return $search;
-		
-	}
-	
-	function avatartags($parameter) {
-		$parameter = stripslashes ( $parameter );
-		$i = count ( $this->replacecode ['search'] );
-		$this->replacecode ['search'] [$i] = $search = "<!--AVATAR_TAG_$i-->";
-		$this->replacecode ['replace'] [$i] = "<?php echo avatar($parameter);?>";
-		return $search;
-	}
 	
 	function evaltags($php) {
 		$php = str_replace ( '\"', '"', $php );
@@ -167,18 +110,6 @@ class Template {
 		return $search;
 	}
 	
-	function hooktags($hookid, $key = '') {
-		global $_G;
-		$i = count ( $this->replacecode ['search'] );
-		$this->replacecode ['search'] [$i] = $search = "<!--HOOK_TAG_$i-->";
-		$dev = '';
-		if (isset ( $_G ['config'] ['plugindeveloper'] ) && $_G ['config'] ['plugindeveloper'] == 2) {
-			$dev = "echo '<hook>[" . ($key ? 'array' : 'string') . " $hookid" . ($key ? '/\'.' . $key . '.\'' : '') . "]</hook>';";
-		}
-		$key = $key !== '' ? "[$key]" : '';
-		$this->replacecode ['replace'] [$i] = "<?php {$dev}if(!empty(\$_G['setting']['pluginhooks']['$hookid']$key)) echo \$_G['setting']['pluginhooks']['$hookid']$key;?>";
-		return $search;
-	}
 	
 	function stripphpcode($type, $code) {
 		$this->phpcode [$type] [] = $code;
@@ -217,13 +148,13 @@ class Template {
 		return;
 	}
 	
-	function transamp($str) {
-		$str = str_replace ( '&', '&amp;', $str );
-		$str = str_replace ( '&amp;amp;', '&amp;', $str );
-		$str = str_replace ( '\"', '"', $str );
-		return $str;
-	}
 	
+	
+	/**
+	 * 处理方括号内的内容
+	 * @param unknown_type $var
+	 * @return mixed
+	 */
 	function addquote($var) {
 		return str_replace ( "\\\"", "\"", preg_replace ( "/\[([a-zA-Z0-9_\-\.\x7f-\xff]+)\]/s", "['\\1']", $var ) );
 	}
@@ -234,14 +165,33 @@ class Template {
 		return $expr . $statement;
 	}
 	
+	/**
+	 * 处理url转义符
+	 * @param unknown_type $str
+	 * @return mixed
+	 */
+	function transamp($str) {
+		$str = str_replace ( '&', '&amp;', $str );
+		$str = str_replace ( '&amp;amp;', '&amp;', $str );
+		$str = str_replace ( '\"', '"', $str );
+		return $str;
+	}
+	
+	/**
+	 * 处理script中的转义符
+	 * @param unknown_type $s
+	 * @param unknown_type $extra
+	 * @return string
+	 */
 	function stripscriptamp($s, $extra) {
 		$extra = str_replace ( '\\"', '"', $extra );
 		$s = str_replace ( '&amp;', '&', $s );
-		return "<script src=\"$s\" type=\"text/javascript\"$extra></script>";
+		return "<script src=\"$s\" type=\"text/javascript\" $extra></script>";
 	}
 	
+	
 	function stripblock($var, $s) {
-		$s = str_replace ( '\\"', '"', $s );
+		$s = str_replace ( '\\"', '"',$s);
 		$s = preg_replace ( "/<\?=\\\$(.+?)\?>/", "{\$\\1}", $s );
 		preg_match_all ( "/<\?=(.+?)\?>/e", $s, $constary );
 		$constadd = '';

@@ -115,7 +115,7 @@ function template($file, $templateid = 0, $tpldir = '', $gettplfile = 0) {
 	$tplfile = $tpldir.'/'.$file.'.html';
 
 	$cachefile = './data/template/'.(defined('STYLEID') ? STYLEID.'_' : '_').$templateid.'_'.str_replace('/', '_', $file).'.tpl.php';
-	if($templateid != 1 && !file_exists(DISCUZ_ROOT.$tplfile) && !file_exists(substr(DISCUZ_ROOT.$tplfile, 0, -4).'.php')
+	if($templateid != 1 && !file_exists(MAUOS_ROOT.$tplfile) && !file_exists(substr(MAUOS_ROOT.$tplfile, 0, -4).'.php')
 			&& !file_exists(DISCUZ_ROOT.($tplfile = $tpldir.$filebak.'.htm'))) {
 		$tplfile = './template/default/'.$filebak.'.htm';
 	}	
